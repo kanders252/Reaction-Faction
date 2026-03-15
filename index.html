@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZTM Vibe Coding Reaction Game · v4.0 · Obsidian Plasma · Three.js 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Exo+2:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ══ ROOT TOKENS ══ */
+:root {
+  --void: #04060D;
+  --abyss: #080C18;
+  --depth: #0C1222;
+  --surface: #111827;
+  --surface2: #1A2235;
+  --plasma: #7B61FF;
+  --plasma-hi: #A594FF;
+  --plasma-lo: #4A3BCC;
+  --plasma-glo: rgba(123,97,255,0.18);
+  --solar: #FF6B35;
+  --solar-hi: #FF8C5A;
+  --solar-glo: rgba(255,107,53,0.15);
+  --teal: #00D4AA;
+  --teal-hi: #33E0BD;
+  --teal-glo: rgba(0,212,170,0.14);
+  --xenon: #E8F0FF;
+  --xenon-dim: rgba(232,240,255,0.52);
+  --xenon-ghost: rgba(232,240,255,0.11);
+  --go: #00E676;
+  --warn: #FFB300;
+  --err: #FF3D6B;
+  --b0: rgba(123,97,255,0.06);
+  --b1: rgba(123,97,255,0.16);
+  --b2: rgba(123,97,255,0.32);
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Exo 2', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+/* ══ RESET + BASE ══ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; -webkit-font-smoothing:antialiased; }
+body {
+  font-family: var(--font-body);
+  color: var(--xenon);
+  background: var(--void);
+  cursor: crosshair;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ══ BACKGROUND LAYERS ══ */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(123,97,255,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 75% 80%, rgba(0,212,170,0.05) 0%, transparent 70%),
+    linear-gradient(180deg, var(--void) 0%, var(--abyss) 40%, var(--depth) 100%);
+  pointer-events:none;
+}
+body::after {
+  content:'';
+  position:fixed; inset:0; z-index:0;
+  background-image:
+    linear-gradient(rgba(123,97,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events:none;
+}
+
+/* ══ APP SHELL ══ */
+#app {
+  position:relative; z-index:1;
+  display:flex; flex-direction:column;
+  min-height:100vh;
+  max-width:1280px;
+  margin:0 auto;
+  padding:0 20px;
+}
+
+/* ══ HEADER ══ */
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 0 14px;
+  border-bottom:1px solid var(--b0);
+}
+.brand {
+  display:flex; flex-direction:column; gap:2px;
+}
+.brand-name {
+  font-family:var(--font-display); font-weight:800; font-size:1.1rem;
+  background:linear-gradient(135deg, var(--plasma) 0%, var(--plasma-hi) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:0.02em;
+}
+.brand-sub {
+  font-family:var(--font-mono); font-size:0.65rem; color:var(--xenon-dim);
+  letter-spacing:0.08em;
+}
+.header-right {
+  display:flex; align-items:center; gap:16px;
+}
+#clock {
+  font-family:var(--font-mono); font-size:0.75rem; color:var(--xenon-dim);
+  letter-spacing:0.06em;
+}
+
+/* ══ HUD STRIP ══ */
+.hud-strip {
+  display:grid; grid-template-columns:repeat(6,1fr); gap:8px;
+  padding:14px 0;
+  border-bottom:1px solid var(--b0);
+}
+.hud-cell {
+  background:var(--surface);
+  border:1px solid var(--b0);
+  border-radius:6px;
+  padding:8px 10px;
+  text-align:center;
+}
+.hud-label {
+  font-family:var(--font-mono); font-size:0.6rem; color:var(--xenon-dim);
+  text-transform:uppercase; letter-spacing:0.1em;
+  margin-bottom:4px;
+}
+.hud-value {
+  font-family:var(--font-display); font-weight:800; font-size:1.25rem;
+  color:var(--xenon);
+}
+
+/* ══ ROUND PIPS ══ */
+.round-pips {
+  display:flex; gap:4px; padding:10px 0;
+  justify-content:center; flex-wrap:wrap;
+}
+.pip {
+  width:10px; height:10px; border-radius:50%;
+  background:var(--surface2);
+  border:1px solid var(--b1);
+  transition:background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.pip.go { background:var(--go); border-color:var(--go); box-shadow:0 0 6px rgba(0,230,118,0.4); }
+.pip.teal { background:var(--teal); border-color:var(--teal); box-shadow:0 0 6px var(--teal-glo); }
+.pip.warn { background:var(--warn); border-color:var(--warn); box-shadow:0 0 6px rgba(255,179,0,0.4); }
+.pip.err { background:var(--err); border-color:var(--err); box-shadow:0 0 6px rgba(255,61,107,0.4); }
+
+/* ══ GAME WRAPPER ══ */
+.game-wrapper {
+  display:flex; gap:20px; flex:1;
+  padding:16px 0;
+}
+.game-main {
+  flex:1; display:flex; flex-direction:column; gap:12px;
+}
+.game-right {
+  width:280px; display:flex; flex-direction:column; gap:12px;
+  flex-shrink:0;
+}
+
+/* ══ ARENA ══ */
+.arena {
+  position:relative;
+  background:var(--abyss);
+  border:1px solid var(--b1);
+  border-radius:12px;
+  aspect-ratio:16/10;
+  overflow:hidden;
+  flex:1;
+  min-height:300px;
+}
+.arena-inner {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ══ CORNER BRACKETS ══ */
+.arena::before, .arena::after {
+  content:''; position:absolute; width:28px; height:28px;
+  border-color:var(--plasma); border-style:solid;
+  pointer-events:none; z-index:5;
+}
+.arena::before { top:10px; left:10px; border-width:2px 0 0 2px; }
+.arena::after { top:10px; right:10px; border-width:2px 2px 0 0; }
+.arena .corner-bl, .arena .corner-br {
+  position:absolute; width:28px; height:28px;
+  border-color:var(--plasma); border-style:solid;
+  pointer-events:none; z-index:5;
+}
+.arena .corner-bl { bottom:10px; left:10px; border-width:0 0 2px 2px; }
+.arena .corner-br { bottom:10px; right:10px; border-width:0 2px 2px 0; }
+
+/* ══ THREE.JS CANVAS ══ */
+.arena-inner canvas {
+  position:absolute !important;
+  inset:0;
+  width:100% !important;
+  height:100% !important;
+  pointer-events:none;
+  z-index:1;
+}
+
+/* ══ SCREENS ══ */
+.screen {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  z-index:10;
+  transition:opacity 0.25s;
+  pointer-events:none;
+}
+.screen.active { pointer-events:auto; }
+.screen:not(.active) { opacity:0; pointer-events:none; }
+
+.screen-idle .idle-title {
+  font-family:var(--font-display); font-weight:800; font-size:1.8rem;
+  background:linear-gradient(135deg, var(--plasma) 0%, var(--plasma-hi) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:8px;
+}
+.screen-idle .idle-sub {
+  font-family:var(--font-body); font-size:0.85rem; color:var(--xenon-dim);
+  margin-bottom:24px;
+}
+
+.screen-wait .wait-text {
+  font-family:var(--font-display); font-weight:800; font-size:1.5rem;
+  color:var(--solar);
+  text-shadow:0 0 20px var(--solar-glo);
+  animation:waitPulse 1.8s ease-in-out infinite;
+}
+@keyframes waitPulse {
+  0%,100%{opacity:0.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.04)}
+}
+
+.screen-target .target-text {
+  font-family:var(--font-display); font-weight:800; font-size:2rem;
+  color:var(--go);
+  text-shadow:0 0 30px rgba(0,230,118,0.4);
+}
+
+.screen-result .result-time {
+  font-family:var(--font-display); font-weight:800; font-size:2.8rem;
+  margin-bottom:4px;
+}
+.screen-result .result-label {
+  font-family:var(--font-mono); font-size:0.7rem; color:var(--xenon-dim);
+  text-transform:uppercase; letter-spacing:0.1em;
+}
+
+.screen-early .early-text {
+  font-family:var(--font-display); font-weight:800; font-size:1.5rem;
+  color:var(--err);
+  text-shadow:0 0 20px rgba(255,61,107,0.3);
+}
+.screen-early .early-sub {
+  font-family:var(--font-body); font-size:0.8rem; color:var(--xenon-dim);
+  margin-top:6px;
+}
+
+/* ══ GEO BADGE + CLICK HINT ══ */
+.geo-badge {
+  position:absolute; top:12px; right:14px; z-index:12;
+  font-family:var(--font-mono); font-size:0.6rem;
+  color:var(--xenon-dim); letter-spacing:0.08em;
+  background:rgba(4,6,13,0.6);
+  padding:3px 8px; border-radius:4px;
+  border:1px solid var(--b0);
+}
+.click-hint {
+  position:absolute; bottom:14px; z-index:12;
+  font-family:var(--font-mono); font-size:0.6rem;
+  color:var(--xenon-dim); letter-spacing:0.06em;
+}
+
+/* ══ FLASH + RIPPLE ══ */
+.flash-overlay {
+  position:absolute; inset:0; z-index:15;
+  pointer-events:none; opacity:0;
+  transition:opacity 0.08s;
+}
+.flash-overlay.active { opacity:1; }
+.flash-go { background:radial-gradient(circle at center, rgba(0,230,118,0.15) 0%, transparent 70%); }
+.flash-teal { background:radial-gradient(circle at center, rgba(0,212,170,0.15) 0%, transparent 70%); }
+.flash-warn { background:radial-gradient(circle at center, rgba(255,179,0,0.15) 0%, transparent 70%); }
+.flash-err { background:radial-gradient(circle at center, rgba(255,61,107,0.18) 0%, transparent 70%); }
+
+.ripple {
+  position:absolute; z-index:14;
+  width:0; height:0; border-radius:50%;
+  pointer-events:none;
+  animation:rippleExpand 0.5s ease-out forwards;
+}
+@keyframes rippleExpand {
+  0%{width:0;height:0;opacity:0.5}
+  100%{width:200px;height:200px;opacity:0;margin-left:-100px;margin-top:-100px}
+}
+
+/* ══ PARTICLE CANVAS ══ */
+#particleCanvas {
+  position:absolute; inset:0; z-index:13;
+  pointer-events:none;
+  width:100%; height:100%;
+}
+
+/* ══ RIGHT PANEL CARDS ══ */
+.panel-card {
+  background:var(--surface);
+  border:1px solid var(--b0);
+  border-radius:8px;
+  padding:14px;
+}
+.panel-title {
+  font-family:var(--font-display); font-weight:700; font-size:0.8rem;
+  color:var(--plasma-hi);
+  margin-bottom:10px;
+  letter-spacing:0.02em;
+}
+
+/* ══ ROUND LOG ══ */
+.round-log {
+  max-height:220px;
+  overflow-y:auto;
+  display:flex; flex-direction:column; gap:4px;
+}
+.round-log::-webkit-scrollbar { width:4px; }
+.round-log::-webkit-scrollbar-track { background:var(--abyss); }
+.round-log::-webkit-scrollbar-thumb { background:var(--b2); border-radius:2px; }
+.log-entry {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:6px 8px;
+  background:var(--abyss);
+  border-radius:4px;
+  border-left:3px solid var(--b1);
+  font-family:var(--font-mono); font-size:0.7rem;
+  animation:slideIn 0.3s ease-out;
+}
+@keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+.log-entry.go { border-left-color:var(--go); }
+.log-entry.teal { border-left-color:var(--teal); }
+.log-entry.warn { border-left-color:var(--warn); }
+.log-entry.err { border-left-color:var(--err); }
+.log-round { color:var(--xenon-dim); }
+.log-time { color:var(--xenon); font-weight:500; }
+.log-diff { font-size:0.6rem; color:var(--xenon-dim); text-transform:uppercase; }
+
+/* ══ BIOMETRICS ══ */
+.bio-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:6px;
+}
+.bio-cell {
+  background:var(--abyss);
+  border-radius:4px;
+  padding:6px 8px;
+  text-align:center;
+}
+.bio-label {
+  font-family:var(--font-mono); font-size:0.55rem;
+  color:var(--xenon-dim); text-transform:uppercase;
+  letter-spacing:0.08em; margin-bottom:2px;
+}
+.bio-value {
+  font-family:var(--font-display); font-weight:700; font-size:0.95rem;
+  color:var(--xenon);
+}
+.bio-anomaly {
+  grid-column:1/-1;
+  font-family:var(--font-mono); font-size:0.6rem;
+  color:var(--warn);
+  padding:4px 8px;
+  text-align:center;
+}
+
+/* ══ SPARKLINE ══ */
+#sparklineCanvas {
+  width:100%; height:60px;
+  border-radius:4px;
+  background:var(--abyss);
+  margin-top:6px;
+}
+
+/* ══ PERCENTILE ══ */
+.percentile-bar-wrap {
+  background:var(--abyss);
+  border-radius:4px;
+  height:10px;
+  overflow:hidden;
+  margin-top:6px;
+}
+.percentile-bar {
+  height:100%;
+  border-radius:4px;
+  background:linear-gradient(90deg, var(--plasma-lo), var(--plasma), var(--plasma-hi));
+  transition:width 0.6s ease-out;
+  width:0%;
+}
+.percentile-value {
+  font-family:var(--font-display); font-weight:800; font-size:1.3rem;
+  color:var(--plasma-hi);
+  margin-top:6px;
+  text-align:center;
+}
+
+/* ══ BUTTONS ══ */
+.btn {
+  font-family:var(--font-display); font-weight:700;
+  padding:12px 28px;
+  border:none; border-radius:8px;
+  cursor:pointer;
+  font-size:0.9rem;
+  letter-spacing:0.02em;
+  transition:transform 0.15s, box-shadow 0.2s;
+}
+.btn:active { transform:scale(0.97); }
+.btn-plasma {
+  background:linear-gradient(135deg, var(--plasma) 0%, var(--plasma-hi) 100%);
+  color:#fff;
+  box-shadow:0 4px 20px var(--plasma-glo);
+}
+.btn-plasma:hover { box-shadow:0 6px 30px rgba(123,97,255,0.3); }
+.btn-ghost {
+  background:transparent;
+  color:var(--xenon-dim);
+  border:1px solid var(--b1);
+}
+.btn-ghost:hover { border-color:var(--plasma); color:var(--xenon); }
+
+/* ══ MODAL ══ */
+.modal-backdrop {
+  position:fixed; inset:0; z-index:100;
+  background:rgba(4,6,13,0.85);
+  backdrop-filter:blur(8px);
+  display:none; align-items:center; justify-content:center;
+  padding:20px;
+}
+.modal-backdrop.active { display:flex; }
+.modal {
+  background:var(--surface);
+  border:1px solid var(--b1);
+  border-radius:14px;
+  max-width:520px; width:100%;
+  padding:32px;
+  max-height:90vh;
+  overflow-y:auto;
+  animation:modalIn 0.35s ease-out;
+}
+@keyframes modalIn { from{transform:scale(0.92);opacity:0} to{transform:scale(1);opacity:1} }
+.modal-avg {
+  font-family:var(--font-display); font-weight:800; font-size:3rem;
+  text-align:center;
+  background:linear-gradient(135deg, var(--plasma) 0%, var(--teal) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.modal-avg-label {
+  font-family:var(--font-mono); font-size:0.65rem; color:var(--xenon-dim);
+  text-transform:uppercase; letter-spacing:0.1em;
+  text-align:center; margin-bottom:16px;
+}
+.modal-rank {
+  text-align:center; margin-bottom:16px;
+  font-family:var(--font-display); font-weight:700; font-size:1.1rem;
+}
+.modal-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  margin-bottom:20px;
+}
+.modal-cell {
+  background:var(--abyss);
+  border-radius:6px;
+  padding:10px;
+  text-align:center;
+}
+.modal-cell-label {
+  font-family:var(--font-mono); font-size:0.55rem; color:var(--xenon-dim);
+  text-transform:uppercase; letter-spacing:0.08em;
+  margin-bottom:4px;
+}
+.modal-cell-value {
+  font-family:var(--font-display); font-weight:700; font-size:1.1rem;
+}
+.modal-debrief {
+  background:var(--abyss);
+  border:1px solid var(--b0);
+  border-radius:6px;
+  padding:14px;
+  margin-bottom:20px;
+  min-height:60px;
+}
+.modal-debrief-title {
+  font-family:var(--font-mono); font-size:0.6rem; color:var(--plasma-hi);
+  text-transform:uppercase; letter-spacing:0.1em;
+  margin-bottom:8px;
+}
+.modal-debrief-text {
+  font-family:var(--font-body); font-size:0.8rem; color:var(--xenon-dim);
+  line-height:1.5;
+}
+.modal-debrief-text .cursor-blink {
+  display:inline-block; width:2px; height:0.9em;
+  background:var(--plasma); margin-left:2px;
+  animation:blink 0.8s step-end infinite;
+  vertical-align:text-bottom;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.modal-btns {
+  display:flex; gap:10px; justify-content:center;
+}
+
+/* ══ FOOTER ══ */
+footer {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 0;
+  border-top:1px solid var(--b0);
+  font-family:var(--font-mono); font-size:0.6rem;
+  color:var(--xenon-dim);
+}
+.footer-version {
+  letter-spacing:0.06em;
+}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:700px) {
+  .game-right { display:none; }
+  .hud-strip { grid-template-columns:repeat(3,1fr); }
+  .game-wrapper { padding:10px 0; }
+  .arena { aspect-ratio:4/3; }
+  .modal { padding:24px 18px; }
+  .modal-avg { font-size:2.2rem; }
+}
+@media(max-width:480px) {
+  header { flex-direction:column; gap:6px; align-items:flex-start; }
+  .hud-value { font-size:1rem; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ══ HEADER ══ -->
+  <header>
+    <div class="brand">
+      <div class="brand-name">CYBER-TITAN LLC</div>
+      <div class="brand-sub">v4.0 · Obsidian Plasma · Three.js 3D</div>
+    </div>
+    <div class="header-right">
+      <span id="clock">00:00:00</span>
+    </div>
+  </header>
+
+  <!-- ══ HUD STRIP ══ -->
+  <div class="hud-strip">
+    <div class="hud-cell"><div class="hud-label">Round</div><div class="hud-value" id="hudRound">0/10</div></div>
+    <div class="hud-cell"><div class="hud-label">Last</div><div class="hud-value" id="hudLast">---</div></div>
+    <div class="hud-cell"><div class="hud-label">Average</div><div class="hud-value" id="hudAvg">---</div></div>
+    <div class="hud-cell"><div class="hud-label">Best</div><div class="hud-value" id="hudBest">---</div></div>
+    <div class="hud-cell"><div class="hud-label">Streak</div><div class="hud-value" id="hudStreak">0</div></div>
+    <div class="hud-cell"><div class="hud-label">Percentile</div><div class="hud-value" id="hudPercentile">---</div></div>
+  </div>
+
+  <!-- ══ ROUND PIPS ══ -->
+  <div class="round-pips" id="roundPips"></div>
+
+  <!-- ══ GAME WRAPPER ══ -->
+  <div class="game-wrapper">
+    <div class="game-main">
+      <!-- ══ ARENA ══ -->
+      <div class="arena" id="arena">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="arena-inner" id="arenaInner">
+          <!-- Three.js canvas injected here -->
+          <div class="screen screen-idle active" id="screenIdle">
+            <div class="idle-title">NEURAL REACTION BENCHMARK</div>
+            <div class="idle-sub">Click to begin · 10 rounds</div>
+            <button class="btn btn-plasma" id="btnStart">INITIALIZE</button>
+          </div>
+          <div class="screen screen-wait" id="screenWait">
+            <div class="wait-text">HOLD...</div>
+          </div>
+          <div class="screen screen-target" id="screenTarget">
+            <div class="target-text">REACT!</div>
+          </div>
+          <div class="screen screen-result" id="screenResult">
+            <div class="result-time" id="resultTime">---</div>
+            <div class="result-label" id="resultLabel">reaction time</div>
+          </div>
+          <div class="screen screen-early" id="screenEarly">
+            <div class="early-text">TOO EARLY</div>
+            <div class="early-sub">Wait for the signal</div>
+          </div>
+        </div>
+        <div class="geo-badge" id="geoBadge">GEO: CALIBRATING</div>
+        <div class="click-hint" id="clickHint" style="left:50%;transform:translateX(-50%)">click to continue</div>
+        <div class="flash-overlay" id="flashOverlay"></div>
+      </div>
+    </div>
+
+    <!-- ══ RIGHT PANEL ══ -->
+    <div class="game-right">
+      <div class="panel-card">
+        <div class="panel-title">Round Log</div>
+        <div class="round-log" id="roundLog"></div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title">Biometric Analysis</div>
+        <div class="bio-grid" id="bioGrid">
+          <div class="bio-cell"><div class="bio-label">Trend</div><div class="bio-value" id="bioTrend">---</div></div>
+          <div class="bio-cell"><div class="bio-label">Variance</div><div class="bio-value" id="bioVariance">---</div></div>
+          <div class="bio-cell"><div class="bio-label">Consistency</div><div class="bio-value" id="bioConsistency">---</div></div>
+          <div class="bio-cell"><div class="bio-label">Fatigue</div><div class="bio-value" id="bioFatigue">---</div></div>
+          <div class="bio-anomaly" id="bioAnomaly" style="display:none;"></div>
+        </div>
+        <canvas id="sparklineCanvas"></canvas>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title">Global Percentile</div>
+        <div class="percentile-bar-wrap"><div class="percentile-bar" id="percentileBar"></div></div>
+        <div class="percentile-value" id="percentileValue">---</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <footer>
+    <span>Kendell Anderson · the-cybertitan · Cyber-Titan LLC</span>
+    <span class="footer-version">v4.0 · Obsidian Plasma · Three.js 3D</span>
+  </footer>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <div class="modal-avg" id="modalAvg">---</div>
+    <div class="modal-avg-label">average reaction time (ms)</div>
+    <div class="modal-rank" id="modalRank"></div>
+    <div class="modal-grid" id="modalGrid"></div>
+    <div class="modal-debrief">
+      <div class="modal-debrief-title">AI Neural Debrief · Claude Sonnet</div>
+      <div class="modal-debrief-text" id="modalDebrief">Analyzing...</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-plasma" id="btnRestart">RUN AGAIN</button>
+      <button class="btn btn-ghost" id="btnClose">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ CONFIG ══ */
+var TOTAL_ROUNDS = 10;
+var WAIT_MIN = 1500;
+var WAIT_MAX = 4500;
+var DIFF_TABLE = {
+  calibrating: { label:'CALIBRATING', geoKey:'calibrating', min:0, max:999, thresholds:[null,null,null] },
+  easy:        { label:'EASY',        geoKey:'easy',        min:0, max:999, thresholds:[180,220,280] },
+  medium:      { label:'MEDIUM',      geoKey:'medium',      min:0, max:999, thresholds:[160,200,260] },
+  hard:        { label:'HARD',        geoKey:'hard',        min:0, max:999, thresholds:[140,180,240], decoys:2 },
+  elite:       { label:'ELITE',       geoKey:'elite',       min:0, max:999, thresholds:[120,160,220], decoys:3 }
+};
+var PERCENTILE_TABLE = [
+  [100, 99], [120, 98], [140, 95], [160, 92], [180, 88],
+  [200, 82], [220, 75], [240, 68], [260, 60], [280, 52],
+  [300, 44], [330, 36], [360, 28], [400, 20], [450, 12],
+  [500, 6], [600, 2], [800, 0.5]
+];
+
+/* ══ STATE ══ */
+var state = 'idle';
+var currentRound = 0;
+var times = [];
+var difficulty = 'calibrating';
+var streak = 0;
+var bestTime = Infinity;
+var waitTimeout = null;
+var targetShownAt = 0;
+var clockInterval = null;
+
+/* ══ DOM REFS ══ */
+var $ = function(id){ return document.getElementById(id); };
+var arenaInner = $('arenaInner');
+var screens = {
+  idle:$('screenIdle'), wait:$('screenWait'),
+  target:$('screenTarget'), result:$('screenResult'),
+  early:$('screenEarly')
+};
+
+/* ══ UTILITIES ══ */
+function getPercentile(ms) {
+  if (ms <= PERCENTILE_TABLE[0][0]) return PERCENTILE_TABLE[0][1];
+  if (ms >= PERCENTILE_TABLE[PERCENTILE_TABLE.length-1][0]) return PERCENTILE_TABLE[PERCENTILE_TABLE.length-1][1];
+  for (var i = 0; i < PERCENTILE_TABLE.length - 1; i++) {
+    var a = PERCENTILE_TABLE[i], b = PERCENTILE_TABLE[i+1];
+    if (ms >= a[0] && ms <= b[0]) {
+      var t = (ms - a[0]) / (b[0] - a[0]);
+      return a[1] + t * (b[1] - a[1]);
+    }
+  }
+  return 50;
+}
+
+function getVerdict(ms, diff) {
+  var d = DIFF_TABLE[diff];
+  if (!d || !d.thresholds[0]) return { text:'CALIBRATING', cls:'teal' };
+  if (ms <= d.thresholds[0]) return { text:'ELITE', cls:'go' };
+  if (ms <= d.thresholds[1]) return { text:'SHARP', cls:'teal' };
+  if (ms <= d.thresholds[2]) return { text:'AVERAGE', cls:'warn' };
+  return { text:'SLOW', cls:'err' };
+}
+
+function getTierClass(ms) {
+  if (ms <= 180) return 'go';
+  if (ms <= 240) return 'teal';
+  if (ms <= 320) return 'warn';
+  return 'err';
+}
+
+function calcDiff(timesArr) {
+  if (timesArr.length < 3) return 'calibrating';
+  var recent = timesArr.slice(-5);
+  var avg = recent.reduce(function(a,b){return a+b},0) / recent.length;
+  if (avg < 180) return 'elite';
+  if (avg < 230) return 'hard';
+  if (avg < 290) return 'medium';
+  return 'easy';
+}
+
+function avg(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce(function(a,b){return a+b},0) / arr.length;
+}
+
+function popStdDev(arr) {
+  if (arr.length < 2) return 0;
+  var m = avg(arr);
+  var v = arr.reduce(function(s,x){ return s + (x-m)*(x-m); }, 0) / arr.length;
+  return Math.sqrt(v);
+}
+
+/* ══ HUD UPDATE ══ */
+function updateHUD() {
+  $('hudRound').textContent = currentRound + '/' + TOTAL_ROUNDS;
+  $('hudLast').textContent = times.length ? times[times.length-1] + 'ms' : '---';
+  $('hudAvg').textContent = times.length ? Math.round(avg(times)) + 'ms' : '---';
+  $('hudBest').textContent = bestTime < Infinity ? bestTime + 'ms' : '---';
+  $('hudStreak').textContent = streak;
+  if (times.length) {
+    var p = getPercentile(avg(times));
+    $('hudPercentile').textContent = p.toFixed(1) + '%';
+  }
+}
+
+function updatePips() {
+  var pips = $('roundPips');
+  pips.innerHTML = '';
+  for (var i = 0; i < TOTAL_ROUNDS; i++) {
+    var d = document.createElement('div');
+    d.className = 'pip';
+    if (i < times.length) d.classList.add(getTierClass(times[i]));
+    pips.appendChild(d);
+  }
+}
+
+/* ══ BIOMETRIC ANALYSIS + SPARKLINE ══ */
+function updateBiometrics() {
+  if (times.length < 2) return;
+  var half = Math.floor(times.length / 2);
+  var firstHalf = times.slice(0, half);
+  var secondHalf = times.slice(half);
+  var trend = avg(secondHalf) - avg(firstHalf);
+  var trendDir = trend < -5 ? '↑ Improving' : trend > 5 ? '↓ Fatiguing' : '→ Stable';
+  $('bioTrend').textContent = trendDir;
+  $('bioTrend').style.color = trend < -5 ? 'var(--go)' : trend > 5 ? 'var(--err)' : 'var(--teal)';
+
+  var sd = popStdDev(times);
+  $('bioVariance').textContent = sd.toFixed(1) + 'ms';
+
+  var consistency = Math.max(0, Math.min(100, 100 - (sd / avg(times)) * 200));
+  $('bioConsistency').textContent = consistency.toFixed(0) + '%';
+
+  if (times.length >= 4) {
+    var recentThree = times.slice(-3);
+    var earlierAvg = avg(times.slice(0, -3));
+    var fatigue = avg(recentThree) - earlierAvg;
+    $('bioFatigue').textContent = (fatigue > 0 ? '+' : '') + fatigue.toFixed(0) + 'ms';
+    $('bioFatigue').style.color = fatigue > 10 ? 'var(--warn)' : 'var(--teal)';
+  }
+
+  var m = avg(times);
+  var anomalyEl = $('bioAnomaly');
+  var anomalies = times.filter(function(t){ return Math.abs(t - m) > 2.5 * sd; });
+  if (anomalies.length && sd > 0) {
+    anomalyEl.style.display = 'block';
+    anomalyEl.textContent = '⚠ ' + anomalies.length + ' anomal' + (anomalies.length > 1 ? 'ies' : 'y') + ' detected (>2.5σ)';
+  } else {
+    anomalyEl.style.display = 'none';
+  }
+
+  drawSparkline();
+}
+
+function drawSparkline() {
+  var canvas = $('sparklineCanvas');
+  var ctx = canvas.getContext('2d');
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  var w = rect.width, h = rect.height;
+  ctx.clearRect(0,0,w,h);
+  if (times.length < 2) return;
+
+  var mn = Math.min.apply(null, times) - 20;
+  var mx = Math.max.apply(null, times) + 20;
+  var range = mx - mn || 1;
+  var pad = 8;
+
+  ctx.beginPath();
+  for (var i = 0; i < times.length; i++) {
+    var x = pad + (i / (times.length - 1)) * (w - pad * 2);
+    var y = pad + (1 - (times[i] - mn) / range) * (h - pad * 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.save();
+  ctx.lineTo(pad + (w - pad*2), h);
+  ctx.lineTo(pad, h);
+  ctx.closePath();
+  var grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(123,97,255,0.2)');
+  grad.addColorStop(1, 'rgba(123,97,255,0.02)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  for (var i = 0; i < times.length; i++) {
+    var x = pad + (i / (times.length - 1)) * (w - pad * 2);
+    var y = pad + (1 - (times[i] - mn) / range) * (h - pad * 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#A594FF';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  for (var i = 0; i < times.length; i++) {
+    var x = pad + (i / (times.length - 1)) * (w - pad * 2);
+    var y = pad + (1 - (times[i] - mn) / range) * (h - pad * 2);
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#A594FF';
+    ctx.fill();
+  }
+}
+
+/* ══ THREE.JS ENGINE IIFE ══ */
+(function() {
+  var renderer, scene, camera, clock;
+  var keyLight, fillLight, ambientLight;
+  var mainMesh = null;
+  var decoyMeshes = [];
+  var engineState = 'idle';
+  var stateTimer = 0;
+  var rafId = null;
+  var rafRunning = false;
+  var container = $('arenaInner');
+
+  var GEO_FACTORY = {
+    calibrating: function() {
+      var torus = new THREE.TorusGeometry(1.05, 0.04, 8, 64);
+      var edges = new THREE.EdgesGeometry(torus);
+      torus.dispose();
+      return { geo: edges, isLine: true };
+    },
+    easy: function() {
+      return { geo: new THREE.SphereGeometry(1.05, 32, 24), isLine: false };
+    },
+    medium: function() {
+      return { geo: new THREE.OctahedronGeometry(1.1, 0), isLine: false };
+    },
+    hard: function() {
+      return { geo: new THREE.IcosahedronGeometry(1.1, 0), isLine: false };
+    },
+    elite: function() {
+      return { geo: new THREE.TorusKnotGeometry(0.68, 0.24, 80, 12), isLine: false };
+    }
+  };
+
+  var COLOR_MAP = {
+    idle:   { mesh: 0x7B61FF, emissive: 0x2A1F66, key: 0xA594FF, keyI: 0.6, fill: 0x00D4AA, fillI: 0.3 },
+    wait:   { mesh: 0xFF6B35, emissive: 0x662200, key: 0xFF8C5A, keyI: 0.7, fill: 0xFF6B35, fillI: 0.4 },
+    target: { mesh: 0x00E676, emissive: 0x004D26, key: 0xA594FF, keyI: 1.2, fill: 0x00D4AA, fillI: 0.8 },
+    early:  { mesh: 0xFF3D6B, emissive: 0x661628, key: 0xFF3D6B, keyI: 0.9, fill: 0xFF3D6B, fillI: 0.5 }
+  };
+
+  function getResultColor(ms) {
+    if (ms <= 180) return { mesh: 0x00E676, emissive: 0x004D26 };
+    if (ms <= 240) return { mesh: 0x00D4AA, emissive: 0x003D30 };
+    if (ms <= 320) return { mesh: 0xFFB300, emissive: 0x4D3600 };
+    return { mesh: 0xFF3D6B, emissive: 0x661628 };
+  }
+
+  function init() {
+    var w = container.clientWidth;
+    var h = container.clientHeight;
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(w, h, false);
+    container.insertBefore(renderer.domElement, container.firstChild);
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 100);
+    camera.position.z = 3.5;
+
+    ambientLight = new THREE.AmbientLight(0x7B61FF, 0.35);
+    scene.add(ambientLight);
+
+    keyLight = new THREE.PointLight(0xA594FF, 0.6, 20);
+    keyLight.position.set(2.5, 2, 3);
+    scene.add(keyLight);
+
+    fillLight = new THREE.PointLight(0x00D4AA, 0.3, 20);
+    fillLight.position.set(-2, -1.5, 2);
+    scene.add(fillLight);
+
+    clock = new THREE.Clock();
+    buildMesh('calibrating');
+    startLoop();
+    window.addEventListener('resize', resizeRenderer);
+  }
+
+  function disposeMesh() {
+    if (mainMesh) {
+      scene.remove(mainMesh);
+      if (mainMesh.geometry) mainMesh.geometry.dispose();
+      if (mainMesh.material) mainMesh.material.dispose();
+      mainMesh = null;
+    }
+  }
+
+  function disposeDecoys() {
+    for (var i = 0; i < decoyMeshes.length; i++) {
+      scene.remove(decoyMeshes[i]);
+      if (decoyMeshes[i].geometry) decoyMeshes[i].geometry.dispose();
+      if (decoyMeshes[i].material) decoyMeshes[i].material.dispose();
+    }
+    decoyMeshes = [];
+  }
+
+  function buildMesh(diffKey) {
+    disposeMesh();
+    var factory = GEO_FACTORY[diffKey];
+    if (!factory) factory = GEO_FACTORY.calibrating;
+    var result = factory();
+    var c = COLOR_MAP[engineState] || COLOR_MAP.idle;
+
+    if (result.isLine) {
+      var mat = new THREE.LineBasicMaterial({ color: c.mesh, transparent: true, opacity: 0.7 });
+      mainMesh = new THREE.LineSegments(result.geo, mat);
+    } else {
+      var mat = new THREE.MeshPhongMaterial({
+        color: c.mesh,
+        emissive: c.emissive,
+        shininess: 60,
+        transparent: true,
+        opacity: 0.9
+      });
+      mainMesh = new THREE.Mesh(result.geo, mat);
+    }
+    scene.add(mainMesh);
+    $('geoBadge').textContent = 'GEO: ' + (DIFF_TABLE[diffKey] ? DIFF_TABLE[diffKey].label : diffKey.toUpperCase());
+  }
+
+  function spawnDecoys(count) {
+    disposeDecoys();
+    for (var i = 0; i < count; i++) {
+      var geo = new THREE.OctahedronGeometry(0.38, 0);
+      var mat = new THREE.MeshPhongMaterial({
+        color: 0xFF3D6B, emissive: 0x330A15,
+        transparent: true, opacity: 0.32
+      });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh._offset = Math.random() * Math.PI * 2;
+      var angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+      mesh.position.set(Math.cos(angle) * 1.8, Math.sin(angle) * 1.4, -0.5);
+      scene.add(mesh);
+      decoyMeshes.push(mesh);
+    }
+  }
+
+  function setState(newState, extraData) {
+    engineState = newState;
+    stateTimer = 0;
+    var c = COLOR_MAP[newState] || COLOR_MAP.idle;
+
+    if (newState === 'result' && extraData && extraData.ms !== undefined) {
+      var rc = getResultColor(extraData.ms);
+      c = Object.assign({}, c, rc, { key: 0xA594FF, keyI: 0.5, fill: 0x00D4AA, fillI: 0.3 });
+    }
+
+    if (mainMesh && mainMesh.material) {
+      if (mainMesh.material.color) mainMesh.material.color.setHex(c.mesh);
+      if (mainMesh.material.emissive) mainMesh.material.emissive.setHex(c.emissive || 0x000000);
+    }
+
+    keyLight.color.setHex(c.key);
+    keyLight.intensity = c.keyI;
+    fillLight.color.setHex(c.fill);
+    fillLight.intensity = c.fillI;
+
+    if (newState === 'target') {
+      var dObj = DIFF_TABLE[difficulty];
+      if (dObj && dObj.decoys) spawnDecoys(dObj.decoys);
+      else disposeDecoys();
+    } else if (newState !== 'target') {
+      disposeDecoys();
+    }
+  }
+
+  function animate() {
+    if (!rafRunning) return;
+    rafId = requestAnimationFrame(animate);
+    var delta = clock.getDelta();
+    var t = clock.getElapsedTime();
+    stateTimer += delta;
+    if (!mainMesh) return;
+
+    switch (engineState) {
+      case 'idle':
+        mainMesh.rotation.x += 0.18 * delta;
+        mainMesh.rotation.y += 0.27 * delta;
+        var s = 1.0 + Math.sin(t * 1.2) * 0.04;
+        mainMesh.scale.set(s, s, s);
+        break;
+      case 'wait':
+        mainMesh.rotation.x += 0.4 * delta;
+        mainMesh.rotation.y += 0.6 * delta;
+        var s = 1.0 + Math.sin(t * 1.8) * 0.06;
+        mainMesh.scale.set(s, s, s);
+        break;
+      case 'target':
+        mainMesh.rotation.x += 2.5 * delta;
+        mainMesh.rotation.y += 3.3 * delta;
+        var popScale;
+        if (stateTimer < 0.38) {
+          popScale = 1.0 + Math.sin(stateTimer * Math.PI / 0.38) * 0.6;
+        } else {
+          popScale = 1.0 + Math.sin(stateTimer * 4) * 0.02;
+        }
+        mainMesh.scale.set(popScale, popScale, popScale);
+        break;
+      case 'result':
+        mainMesh.rotation.x += 0.15 * delta;
+        mainMesh.rotation.y += 0.2 * delta;
+        var s = 1.0 + Math.sin(t * 0.8) * 0.02;
+        mainMesh.scale.set(s, s, s);
+        break;
+      case 'early':
+        mainMesh.rotation.x += 5.0 * delta;
+        mainMesh.rotation.y += 6.5 * delta;
+        var shake = Math.sin(t * 30) * 0.08;
+        mainMesh.position.x = Math.sin(t * 25) * 0.1;
+        mainMesh.position.y = Math.cos(t * 30) * 0.1;
+        break;
+    }
+
+    for (var i = 0; i < decoyMeshes.length; i++) {
+      var dm = decoyMeshes[i];
+      dm.rotation.x += 1.5 * delta;
+      dm.rotation.z += 1.0 * delta;
+      var bs = 0.9 + Math.sin(t * 2.0 + dm._offset) * 0.12;
+      dm.scale.set(bs, bs, bs);
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  function startLoop() {
+    if (rafRunning) return;
+    rafRunning = true;
+    clock.start();
+    animate();
+  }
+
+  function resizeRenderer() {
+    var w = container.clientWidth;
+    var h = container.clientHeight;
+    if (w === 0 || h === 0) return;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  }
+
+  function dispose() {
+    rafRunning = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    disposeMesh();
+    disposeDecoys();
+    window.removeEventListener('resize', resizeRenderer);
+    if (renderer) {
+      renderer.dispose();
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+    }
+  }
+
+  window.threeEngine = {
+    buildMesh: buildMesh,
+    setState: setState,
+    dispose: dispose
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 0);
+  }
+})();
+
+/* ══ PARTICLE BURST IIFE ══ */
+var particleBurst = (function() {
+  var canvas = $('particleCanvas');
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var running = false;
+  var pRafId = null;
+
+  function resize() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
+  function burst(cx, cy, color, count) {
+    resize();
+    var rect = canvas.getBoundingClientRect();
+    var relX = cx - rect.left;
+    var relY = cy - rect.top;
+    for (var i = 0; i < (count || 24); i++) {
+      var angle = Math.random() * Math.PI * 2;
+      var speed = 1.5 + Math.random() * 3;
+      particles.push({
+        x: relX, y: relY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        decay: 0.015 + Math.random() * 0.02,
+        size: 2 + Math.random() * 3,
+        color: color
+      });
+    }
+    if (!running) { running = true; loop(); }
+  }
+
+  function loop() {
+    if (!running) return;
+    var rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.06;
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (particles.length > 0) {
+      pRafId = requestAnimationFrame(loop);
+    } else {
+      running = false;
+    }
+  }
+
+  return { burst: burst };
+})();
+
+/* ══ FLASH + RIPPLE ══ */
+function flash(cls) {
+  var el = $('flashOverlay');
+  el.className = 'flash-overlay ' + cls + ' active';
+  setTimeout(function(){ el.className = 'flash-overlay'; }, 200);
+}
+
+function ripple(x, y, color) {
+  var arena = $('arena');
+  var rect = arena.getBoundingClientRect();
+  var r = document.createElement('div');
+  r.className = 'ripple';
+  r.style.left = (x - rect.left) + 'px';
+  r.style.top = (y - rect.top) + 'px';
+  r.style.border = '2px solid ' + color;
+  arena.appendChild(r);
+  setTimeout(function(){ r.remove(); }, 500);
+}
+
+/* ══ SCREEN MANAGEMENT ══ */
+function setScreen(name) {
+  Object.keys(screens).forEach(function(k) {
+    screens[k].classList.toggle('active', k === name);
+  });
+}
+
+/* ══ GAME LOOP ══ */
+function startWait() {
+  state = 'wait';
+  setScreen('wait');
+  window.threeEngine.setState('wait');
+  var delay = WAIT_MIN + Math.random() * (WAIT_MAX - WAIT_MIN);
+  waitTimeout = setTimeout(deployTarget, delay);
+}
+
+function deployTarget() {
+  targetShownAt = Date.now();
+  state = 'target';
+  setScreen('target');
+  window.threeEngine.setState('target');
+}
+
+function handleTargetClick(e) {
+  var rt = Date.now() - targetShownAt;
+  state = 'result';
+  times.push(rt);
+  currentRound++;
+  if (rt < bestTime) bestTime = rt;
+
+  var verdict = getVerdict(rt, difficulty);
+  streak = verdict.cls === 'go' || verdict.cls === 'teal' ? streak + 1 : 0;
+  difficulty = calcDiff(times);
+
+  window.threeEngine.buildMesh(DIFF_TABLE[difficulty].geoKey);
+  window.threeEngine.setState('result', { ms: rt });
+
+  var tierClass = getTierClass(rt);
+  $('resultTime').textContent = rt + 'ms';
+  $('resultTime').style.color = tierClass === 'go' ? 'var(--go)' : tierClass === 'teal' ? 'var(--teal)' : tierClass === 'warn' ? 'var(--warn)' : 'var(--err)';
+  $('resultLabel').textContent = verdict.text;
+  setScreen('result');
+
+  flash('flash-' + (tierClass === 'teal' ? 'teal' : tierClass));
+  var pColor = tierClass === 'go' ? '#00E676' : tierClass === 'teal' ? '#00D4AA' : tierClass === 'warn' ? '#FFB300' : '#FF3D6B';
+  particleBurst.burst(e.clientX, e.clientY, pColor, 28);
+  ripple(e.clientX, e.clientY, pColor);
+
+  addLogEntry(currentRound, rt, difficulty);
+  updateHUD();
+  updatePips();
+  updateBiometrics();
+  updatePercentile();
+}
+
+function handleEarlyClick(e) {
+  if (waitTimeout) { clearTimeout(waitTimeout); waitTimeout = null; }
+  state = 'early';
+  setScreen('early');
+  window.threeEngine.setState('early');
+  flash('flash-err');
+  particleBurst.burst(e.clientX, e.clientY, '#FF3D6B', 16);
+}
+
+function showResult() {
+  if (currentRound >= TOTAL_ROUNDS) {
+    showGameOver();
+  } else {
+    startWait();
+  }
+}
+
+/* ══ ROUND LOG ══ */
+function addLogEntry(round, ms, diff) {
+  var log = $('roundLog');
+  var entry = document.createElement('div');
+  entry.className = 'log-entry ' + getTierClass(ms);
+  entry.innerHTML = '<span class="log-round">R' + round + '</span><span class="log-time">' + ms + 'ms</span><span class="log-diff">' + DIFF_TABLE[diff].label + '</span>';
+  log.insertBefore(entry, log.firstChild);
+}
+
+/* ══ PERCENTILE UPDATE ══ */
+function updatePercentile() {
+  if (!times.length) return;
+  var p = getPercentile(avg(times));
+  $('percentileBar').style.width = p + '%';
+  $('percentileValue').textContent = p.toFixed(1) + '%';
+}
+
+/* ══ GAME OVER + MODAL ══ */
+function getModalRank(avgMs) {
+  if (avgMs <= 160) return { emoji:'⚡', title:'NEURAL ELITE', color:'var(--go)' };
+  if (avgMs <= 200) return { emoji:'🔥', title:'SHARP OPERATOR', color:'var(--teal)' };
+  if (avgMs <= 260) return { emoji:'🎯', title:'SOLID RESPONDER', color:'var(--plasma-hi)' };
+  if (avgMs <= 340) return { emoji:'📡', title:'BASELINE ACTIVE', color:'var(--warn)' };
+  return { emoji:'🧊', title:'WARMING UP', color:'var(--err)' };
+}
+
+function showGameOver() {
+  state = 'gameover';
+  var a = Math.round(avg(times));
+  var rank = getModalRank(a);
+  var p = getPercentile(a);
+
+  $('modalAvg').textContent = a + 'ms';
+  $('modalRank').innerHTML = '<span style="color:' + rank.color + '">' + rank.emoji + ' ' + rank.title + '</span>';
+
+  var grid = $('modalGrid');
+  grid.innerHTML = '';
+  var cells = [
+    { label:'Best', value:bestTime + 'ms' },
+    { label:'Worst', value:Math.max.apply(null, times) + 'ms' },
+    { label:'Percentile', value:p.toFixed(1) + '%' },
+    { label:'Consistency', value:(times.length >= 2 ? (Math.max(0, Math.min(100, 100 - (popStdDev(times) / avg(times)) * 200))).toFixed(0) + '%' : '---') }
+  ];
+  cells.forEach(function(c) {
+    var d = document.createElement('div');
+    d.className = 'modal-cell';
+    d.innerHTML = '<div class="modal-cell-label">' + c.label + '</div><div class="modal-cell-value">' + c.value + '</div>';
+    grid.appendChild(d);
+  });
+
+  $('modalBackdrop').classList.add('active');
+  generateAIDebrief();
+}
+
+/* ══ AI DEBRIEF ══ */
+function generateAIDebrief() {
+  var debriefEl = $('modalDebrief');
+  debriefEl.innerHTML = 'Analyzing<span class="cursor-blink"></span>';
+
+  var a = Math.round(avg(times));
+  var sd = popStdDev(times);
+  var p = getPercentile(a);
+  var prompt = 'You are a neuroscience-informed performance analyst for Cyber-Titan LLC. Analyze this reaction time benchmark session in 3-4 concise sentences. Be specific with numbers. Data: rounds=' + times.length + ', times=[' + times.join(',') + ']ms, avg=' + a + 'ms, best=' + bestTime + 'ms, stdev=' + sd.toFixed(1) + 'ms, percentile=' + p.toFixed(1) + '%, difficulty=' + difficulty + '. Mention consistency, trend, and one actionable suggestion.';
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  }).then(function(r) { return r.json(); })
+    .then(function(data) {
+      var text = '';
+      if (data.content) {
+        data.content.forEach(function(b) { if (b.type === 'text') text += b.text; });
+      }
+      if (text) typewriter(debriefEl, text);
+      else buildFallback(debriefEl);
+    }).catch(function() {
+      buildFallback(debriefEl);
+    });
+}
+
+function buildFallback(el) {
+  var a = Math.round(avg(times));
+  var sd = popStdDev(times);
+  var p = getPercentile(a);
+  var half = Math.floor(times.length / 2);
+  var trend = avg(times.slice(half)) - avg(times.slice(0, half));
+  var tDir = trend < -5 ? 'improving' : trend > 5 ? 'showing fatigue' : 'stable';
+  var text = 'Session complete: ' + a + 'ms average across ' + times.length + ' rounds, placing you at the ' + p.toFixed(1) + ' percentile globally. Your σ of ' + sd.toFixed(1) + 'ms indicates ' + (sd < 20 ? 'exceptional' : sd < 35 ? 'good' : 'moderate') + ' consistency. Performance trend: ' + tDir + '. ' + (a < 200 ? 'Elite-tier reflexes — continue training to push sub-180ms.' : a < 260 ? 'Solid baseline. Focus on pre-stimulus anticipation to improve.' : 'Room for growth — try reducing distractions and warming up before sessions.');
+  typewriter(el, text);
+}
+
+function typewriter(el, text) {
+  el.innerHTML = '';
+  var i = 0;
+  var span = document.createElement('span');
+  el.appendChild(span);
+  var cursor = document.createElement('span');
+  cursor.className = 'cursor-blink';
+  el.appendChild(cursor);
+  var tw = setInterval(function() {
+    if (i < text.length) {
+      span.textContent += text[i];
+      i++;
+    } else {
+      clearInterval(tw);
+      cursor.remove();
+    }
+  }, 18);
+  if (!window._twIntervals) window._twIntervals = [];
+  window._twIntervals.push(tw);
+}
+
+/* ══ RESET ══ */
+function resetGame() {
+  if (waitTimeout) { clearTimeout(waitTimeout); waitTimeout = null; }
+  if (window._twIntervals) {
+    window._twIntervals.forEach(function(id) { clearInterval(id); });
+    window._twIntervals = [];
+  }
+  state = 'idle';
+  currentRound = 0;
+  times = [];
+  difficulty = 'calibrating';
+  streak = 0;
+  bestTime = Infinity;
+  targetShownAt = 0;
+
+  $('modalBackdrop').classList.remove('active');
+  setScreen('idle');
+  updateHUD();
+  updatePips();
+
+  $('roundLog').innerHTML = '';
+  $('bioTrend').textContent = '---';
+  $('bioVariance').textContent = '---';
+  $('bioConsistency').textContent = '---';
+  $('bioFatigue').textContent = '---';
+  $('bioAnomaly').style.display = 'none';
+  $('percentileBar').style.width = '0%';
+  $('percentileValue').textContent = '---';
+
+  var sparkCtx = $('sparklineCanvas').getContext('2d');
+  sparkCtx.clearRect(0, 0, $('sparklineCanvas').width, $('sparklineCanvas').height);
+
+  window.threeEngine.buildMesh('calibrating');
+  window.threeEngine.setState('idle');
+}
+
+/* ══ EVENT LISTENERS ══ */
+$('btnStart').addEventListener('click', function(e) {
+  e.stopPropagation();
+  currentRound = 0;
+  times = [];
+  difficulty = 'calibrating';
+  streak = 0;
+  bestTime = Infinity;
+  updateHUD();
+  updatePips();
+  startWait();
+});
+
+arenaInner.addEventListener('click', function(e) {
+  if (state === 'target') {
+    handleTargetClick(e);
+  } else if (state === 'wait') {
+    handleEarlyClick(e);
+  } else if (state === 'result') {
+    showResult();
+  } else if (state === 'early') {
+    startWait();
+  }
+});
+
+$('btnRestart').addEventListener('click', function(e) {
+  e.stopPropagation();
+  resetGame();
+  setTimeout(function() {
+    $('btnStart').click();
+  }, 100);
+});
+
+$('btnClose').addEventListener('click', function(e) {
+  e.stopPropagation();
+  resetGame();
+});
+
+/* ══ CLOCK ══ */
+function updateClock() {
+  var d = new Date();
+  var h = String(d.getHours()).padStart(2,'0');
+  var m = String(d.getMinutes()).padStart(2,'0');
+  var s = String(d.getSeconds()).padStart(2,'0');
+  $('clock').textContent = h + ':' + m + ':' + s;
+}
+clockInterval = setInterval(updateClock, 1000);
+updateClock();
+
+/* ══ INIT ══ */
+updatePips();
+</script>
+</body>
+</html>
