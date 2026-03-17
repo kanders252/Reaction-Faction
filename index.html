@@ -257,8 +257,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 footer{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--b0);font-family:var(--font-mono);font-size:0.55rem;color:var(--xenon-dim)}
 
 /* ══ RESPONSIVE ══ */
-@media(max-width:700px){.game-right{display:none}.hud-strip{grid-template-columns:repeat(3,1fr)}.arena{aspect-ratio:4/3}.modal{padding:20px 16px}.modal-avg{font-size:2.2rem}.rt-time{font-size:1.8rem}.boot-title{font-size:1.3rem}.settings-panel{width:100%}}
-@media(max-width:480px){header{flex-direction:column;gap:6px;align-items:flex-start}.hud-value{font-size:0.95rem}.header-status{display:none}}
+@media(max-width:700px){.game-right{display:none}.hud-strip{grid-template-columns:repeat(3,1fr);max-width:400px;margin:0 auto}.arena{aspect-ratio:4/3}.modal{padding:20px 16px}.modal-avg{font-size:2.2rem}.rt-time{font-size:1.8rem}.boot-title{font-size:1.3rem}.settings-panel{width:100%}.round-pips{justify-content:center}}
+@media(max-width:480px){header{flex-direction:column;gap:8px;align-items:center;text-align:center}.brand{justify-content:center}.header-right{justify-content:center;width:100%}.header-status{display:none}.hud-strip{grid-template-columns:repeat(3,1fr);max-width:340px;margin:0 auto;gap:6px}.hud-value{font-size:0.95rem}.hud-label{font-size:0.55rem}footer{flex-direction:column;gap:4px;align-items:center;text-align:center}.round-pips{justify-content:center}#app{padding:0 12px}}
 </style>
 </head>
 <body>
